@@ -1,6 +1,6 @@
 ---
 name: tavotto-figure
-description: 画 matplotlib 论文级图表，并用 Tavotto 继续微调（拖图例、改字号线宽、调刻度、按出版规范预检、导出矢量 PDF）；也把用户**已经画好的图**按投稿要求改宽度 / 字体 / 最小字号而不重画（保留式规范化）。用户要画图、出图、做 figure、画折线/柱状/散点/误差棒、做论文配图、scientific plot / publication figure，要把现有图改成 8 cm / 换 Times New Roman / 字号不小于 8 pt，或提到 Tavotto 时使用。
+description: 画 matplotlib 论文级图表，并用 Tavotto 继续微调（拖图例、改字号线宽、调刻度、按出版规范预检、导出矢量 PDF / SVG）；也把用户**已经画好的图**按投稿要求改宽度 / 字体 / 最小字号而不重画（保留式规范化）。用户要画图、出图、做 figure、画折线/柱状/散点/误差棒、做论文配图、scientific plot / publication figure，要把现有图改成 8 cm / 换 Times New Roman / 字号不小于 8 pt，或提到 Tavotto 时使用。
 ---
 
 # Tavotto Figure
@@ -229,3 +229,11 @@ python3 scripts/handoff.py <脚本路径>
 `tavotto_apply_overrides` 改这张图，就 `tavotto_close_session` 再 `tavotto_open_figure`
 重开一次；只是让 Tavotto 界面跟上，则刷新就够了。用户撞上 Tavotto 自身的缺陷时，按
 `references/issue-reporting.md` 写脱敏的 issue 草稿——**用户明确允许才外发**。
+
+
+## SVG 导出
+
+用户要求 SVG 时，调用 `tavotto_export`，设置 `formats: ["svg"]`；需要多个格式时
+使用 `formats: ["pdf", "png", "svg"]`。复用当前会话的编辑和预检结果，保留原有
+显式确认要求。内嵌画布顶栏也提供「导出 SVG」。SVG 中原有位图保持为嵌入图像，
+不承诺把照片转换为矢量路径。桌面版导出对话框支持原图和画布两种范围的 SVG。

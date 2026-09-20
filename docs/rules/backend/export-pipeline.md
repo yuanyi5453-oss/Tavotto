@@ -31,13 +31,15 @@
   * 文件名规则是**严格同源对**（`web/src/lib/exportName.ts`），
     `tests/golden/filename_vectors.json` 两侧各跑一遍；**首尾空白的字符集
     写死一份**，不许退回 `str.strip()`/`String.trim()`（两者认的集合不同）。
-  * **EPS 与 TIFF（ADR 0046，2026-09-06）**：`FORMATS = (pdf, png, eps, tiff)`，
+  * **EPS 与 TIFF（ADR 0046，2026-09-06）**：`FORMATS = (pdf, png, eps, tiff, svg)`，
     新格式追加在后。TIFF 与 PNG 出自**同一次栅格化**（`Canvas.save_tiff` /
     `pdfbackend.original_tiff`），编码器是纯标准库的 `tavotto/tiffwrite.py`
     （Deflate 无损；父进程没有 Pillow，**别为它引进 Pillow**）；位图源的分辨率
     标签只写源文件自己声明过的密度。EPS **只有 worker 的 matplotlib 写得出**
     （PyMuPDF 没有 PostScript 写入器）：`scope=canvas` 逐项报 `eps_not_for_canvas`，
     没有脚本的图报 `eps_needs_script`，其余格式照常交付；要了 EPS 时 PDF/PNG/TIFF
-    也让 worker 现画（`_resolve_panel_source(rerender=True)`），四个格式出自同一次
+    也让 worker 现画（`_resolve_panel_source(rerender=True)`），所选格式出自同一次
     脚本运行。**不许**用 `Pixmap.save(…, "ps")` 之类把位图裹成 PS 冒充矢量。
     「谁来渲染」在导出路上的唯一调用点是 `_serialize_figure()`。
+
+- SVG 扩展见 `docs/svg-export.md`：原图与画布共用 PDF 快照，显式 pt 尺寸，文字转路径。

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import shutil
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Callable
 
@@ -891,6 +892,9 @@ class Canvas:
     def save_pdf(self, path: Path) -> None:
         self._doc.save(str(path), deflate=True)
 
+    def save_svg(self, path: Path) -> None:
+        _write_svg_page(self._page, path)
+
     def save_png(self, path: Path, dpi: int) -> None:
         self._pixmap(dpi).save(str(path))
 
@@ -985,6 +989,51 @@ def original_pdf(src: Path, out: Path, page_pt: tuple[float, float] | None = Non
         "vector": False,
         "pages": 1,
     }
+
+
+def _write_svg_page(page: pymupdf.Page, out: Path) -> None:
+    """保留矢量路径与嵌入图像；显式 pt 单位防止阅读器按 CSS px 缩小物理尺寸。"""
+    # 保留标准前缀，兼容按 xlink:href 查找字形引用的 SVG 阅读器。
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+    root = ET.fromstring(page.get_svg_image(text_as_path=True))
+    root.set("width", f"{page.rect.width:.10g}pt")
+    root.set("height", f"{page.rect.height:.10g}pt")
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(root).write(out, encoding="utf-8", xml_declaration=True)
+
+
+def original_svg(src: Path, out: Path, page_pt: tuple[float, float] | None = None) -> dict:
+    """按原图尺寸导出独立 SVG；文字转路径，位图保持原始像素网格。"""
+    src = Path(src)
+    if src.suffix.lower() == ".pdf":
+        with pymupdf.open(src) as doc:
+            page = doc[0]
+            _write_svg_page(page, out)
+            return {
+                "w_pt": page.rect.width,
+                "h_pt": page.rect.height,
+                "px_w": None,
+                "px_h": None,
+                "vector": True,
+                "pages": doc.page_count,
+            }
+    if page_pt is None or page_pt[0] <= 0 or page_pt[1] <= 0:
+        raise ValueError("位图源装进 SVG 必须给页面尺寸（见 engine/originalspec）")
+    pix = pymupdf.Pixmap(str(src))
+    with pymupdf.open() as doc:
+        page = doc.new_page(width=float(page_pt[0]), height=float(page_pt[1]))
+        page.insert_image(page.rect, filename=str(src))
+        _write_svg_page(page, out)
+        return {
+            "w_pt": page.rect.width,
+            "h_pt": page.rect.height,
+            "px_w": pix.width,
+            "px_h": pix.height,
+            "vector": False,
+            "pages": 1,
+        }
 
 
 def original_png(src: Path, out: Path, ppi: int | None, transparent: bool = False) -> dict:

@@ -942,7 +942,7 @@ export function ExportDialog() {
           )}
         </section>
 
-        {/* 2. 格式 —— 四颗复选框紧凑排一行（gap 20），不再拉满 560px；顺序与 `FORMATS` 同源 */}
+        {/* 2. 格式 —— 格式复选框紧凑排列（gap 20），不再拉满 560px；顺序与 `FORMATS` 同源 */}
         <section className="flex flex-col gap-1.5">
           <fieldset
             aria-label={ex("formatLabel")}
@@ -982,6 +982,12 @@ export function ExportDialog() {
                   onChange={() => toggleFormat("tiff")}
                   title="TIFF"
                   hint={ex("tiffHint")}
+                />
+                <FormatCheck
+                  checked={formats.includes("svg")}
+                  onChange={() => toggleFormat("svg")}
+                  title="SVG"
+                  hint={ex("svgHint")}
                 />
               </div>
             </FormRow>

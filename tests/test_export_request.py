@@ -121,9 +121,9 @@ def test_tiff_is_raster_and_eps_is_vector_for_the_ppi_rule():
     assert req.has_raster and req.has_vector
     assert exportreq.FORMAT_TIFF in exportreq.RASTER_FORMATS
     assert exportreq.FORMAT_EPS in exportreq.VECTOR_FORMATS
-    # 引擎直连那条路（MCP）认的集合是画布那条的超集 + svg，两边不许各自漂
+    # 引擎直连（MCP）与桌面导出支持相同格式，两边不许各自漂
     assert set(exportreq.ENGINE_FORMATS) == set(exportreq.FORMATS) | {exportreq.FORMAT_SVG}
-    assert set(exportreq.FORMATS) | {"svg"} == exportreq.RASTER_FORMATS | exportreq.VECTOR_FORMATS
+    assert set(exportreq.FORMATS) == exportreq.RASTER_FORMATS | exportreq.VECTOR_FORMATS
 
 
 def test_tif_alias_typed_by_the_user_is_stripped_too():
@@ -143,7 +143,7 @@ def test_tif_alias_typed_by_the_user_is_stripped_too():
     [
         ({"formats": []}, "no_format"),
         ({"formats": ["docx"]}, "unsupported_format"),
-        ({"formats": ["svg"]}, "unsupported_format"),  # 画布合成给不出 svg（只有引擎直连那条路认）
+        ({"formats": ["webp"]}, "unsupported_format"),
         ({"ppi": "x"}, "bad_ppi"),
         ({"ppi": 5}, "ppi_out_of_range"),
         ({"ppi": 99999}, "ppi_out_of_range"),
@@ -231,3 +231,15 @@ def test_dedupe_numbering():
     taken = {"Fig 1.pdf", "Fig 1 (2).pdf"}
     assert exportreq.dedupe_name("Fig 1", "pdf", lambda n: n in taken) == "Fig 1 (3).pdf"
     assert exportreq.dedupe_name("Fig 1", "png", lambda n: n in taken) == "Fig 1.png"
+
+
+def test_svg_available_for_desktop_without_ppi():
+    req = exportreq.normalize(
+        {
+            "scope": "canvas",
+            "formats": ["svg"],
+            "canvas": {"page_w_mm": 100, "page_h_mm": 80, "objects": []},
+        }
+    )
+    assert req.formats == ("svg",)
+    assert req.ppi is None

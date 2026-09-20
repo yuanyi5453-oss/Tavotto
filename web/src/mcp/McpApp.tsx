@@ -191,6 +191,22 @@ export function McpApp({
           onClick={() => void runPreflight()}
         />
         <button
+          className="flex h-7 shrink-0 items-center gap-1.5 rounded-sm bg-surface px-2.5 text-xs text-ink hover:bg-surface-hover disabled:opacity-40"
+          disabled={busy != null || pending || (needsConfirm && !confirmForced)}
+          title={
+            pending
+              ? mc('exportPendingTitle')
+              : needsConfirm && !confirmForced
+                ? mc('exportBlockedTitle')
+                : undefined
+          }
+          data-mcp-export="svg"
+          onClick={() => void runExport(['svg'])}
+        >
+          {busy === 'export' ? <LoaderCircle size={ICON_SIZE.sm} className="animate-spin" /> : <Download size={ICON_SIZE.sm} />}
+          {mc('exportSvg')}
+        </button>
+        <button
           className="flex h-7 shrink-0 items-center gap-1.5 rounded-sm bg-ink px-2.5 text-xs text-white disabled:opacity-40"
           disabled={busy != null || pending || (needsConfirm && !confirmForced)}
           title={

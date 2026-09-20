@@ -6,9 +6,11 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import threading
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pymupdf
@@ -1446,3 +1448,81 @@ def test_pdf_alone_still_uses_the_disk_file_when_nothing_forces_a_rerender(env, 
     _, body = _post(client, _original(formats=["pdf", "png"], ppi=100))
     assert body["status"] == "done", body
     assert calls == [], "没有 EPS、没有 override，不该去找 worker"
+
+
+# SVG 与 PDF 使用相同快照，物理尺寸必须一致，不能整页栅格化。
+@pytest.mark.parametrize("scope", ["original", "canvas"])
+def test_svg_preserves_physical_size_and_vector_paths(env, scope):
+    client, _ = env
+    spec = _original if scope == "original" else _canvas
+    status, body = _post(client, spec(formats=["pdf", "svg"]))
+    assert status == 200, body
+    assert body["status"] == "done"
+    svg = _out(body, "svg")
+    assert svg["vector"] is True
+    root = ET.parse(_dir(body) / svg["name"]).getroot()
+    ns = {"s": "http://www.w3.org/2000/svg"}
+    assert root.tag == "{http://www.w3.org/2000/svg}svg"
+    assert root.findall(".//s:path", ns)
+    assert not root.findall(".//s:image", ns)
+    assert not root.findall(".//s:text", ns)  # 字体轮廓随文件交付
+    with pymupdf.open(_dir(body) / _out(body, "pdf")["name"]) as doc:
+        assert root.attrib["width"].endswith("pt")
+        assert root.attrib["height"].endswith("pt")
+        assert float(root.attrib["width"][:-2]) == pytest.approx(doc[0].rect.width)
+        assert float(root.attrib["height"][:-2]) == pytest.approx(doc[0].rect.height)
+        if scope == "original":
+            # 包括文字轮廓的渲染复核：丢失 xlink 字形引用时这项会失败。
+            reference = doc[0].get_pixmap(alpha=False)
+            with pymupdf.open(_dir(body) / svg["name"]) as svg_doc:
+                rendered = svg_doc[0].get_pixmap(alpha=False)
+            assert (rendered.width, rendered.height) == (reference.width, reference.height)
+            mean_error = sum(
+                abs(a - b) for a, b in zip(reference.samples, rendered.samples, strict=True)
+            ) / len(reference.samples)
+            assert mean_error < 1.0
+
+
+def test_svg_raster_source_embeds_native_pixels(env):
+    client, _ = env
+    status, body = _post(
+        client,
+        _original(
+            formats=["svg"],
+            original={
+                "figure_id": "r1.png",
+                "w_mm": 10.16,
+                "h_mm": 6.773,
+                "source_kind": "raster",
+                "px_w": 120,
+                "px_h": 80,
+            },
+        ),
+    )
+    assert status == 200, body
+    svg = _out(body, "svg")
+    assert svg["vector"] is False
+    root = ET.parse(_dir(body) / svg["name"]).getroot()
+    images = root.findall(".//{http://www.w3.org/2000/svg}image")
+    assert len(images) == 1
+    href = images[0].attrib["{http://www.w3.org/1999/xlink}href"]
+    assert href.startswith("data:image/png;base64,")
+    pix = pymupdf.Pixmap(base64.b64decode(href.split(",", 1)[1]))
+    assert (pix.width, pix.height) == (120, 80)
+    assert float(root.attrib["width"][:-2]) == pytest.approx(10.16 / 25.4 * 72)
+
+
+def test_svg_failure_keeps_successful_pdf(env, monkeypatch):
+    from tavotto.pdfbackend.pymupdf_backend import Canvas
+
+    def fail(self, path):
+        path.write_text("incomplete SVG", encoding="utf-8")
+        raise OSError("simulated SVG failure")
+
+    monkeypatch.setattr(Canvas, "save_svg", fail)
+    client, _ = env
+    status, body = _post(client, _canvas(formats=["pdf", "svg"]))
+    assert status == 200, body
+    assert body["status"] == "partial"
+    assert (_dir(body) / _out(body, "pdf")["name"]).is_file()
+    assert not list(_dir(body).glob("*.svg"))

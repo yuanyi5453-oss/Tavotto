@@ -55,16 +55,10 @@ FORMAT_PNG = "png"
 FORMAT_SVG = "svg"
 FORMAT_EPS = "eps"
 FORMAT_TIFF = "tiff"
-FORMATS = (FORMAT_PDF, FORMAT_PNG, FORMAT_EPS, FORMAT_TIFF)
+FORMATS = (FORMAT_PDF, FORMAT_PNG, FORMAT_EPS, FORMAT_TIFF, FORMAT_SVG)
 
-#: 引擎**直接序列化**那条路（codex-plugin 的 `tavotto_export`）额外认的格式。
-#:
-#: `svg` **不在 `FORMATS` 里**，理由不是"svg 不够矢量"——matplotlib 序列化出来的
-#: SVG 与它的 PDF 同源，是真矢量——而是画布合成走 PyMuPDF，那条路**给不出**
-#: SVG。把它放进全局枚举，导出面板就会摆出一个合成管线兑现不了的选项。
-#: 所以「这次认哪几种格式」是**消费点自己带的参数**
-#: （`normalize(allowed_formats=…)`），而规则（清洗、扩展名、去重、PPI 语义、
-#: 顺序）仍然只有这一份。
+#: 引擎直接序列化与桌面导出支持同一组格式；保留引擎已有的格式顺序。
+#: 桌面 SVG 从同一份 PDF 快照生成，文字转路径，位图保留为嵌入图像。
 ENGINE_FORMATS = (FORMAT_PDF, FORMAT_PNG, FORMAT_SVG, FORMAT_EPS, FORMAT_TIFF)
 
 #: 哪些格式是位图 —— 「PPI 只在位图输出时有意义」这句话的唯一判据。

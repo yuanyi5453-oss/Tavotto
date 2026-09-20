@@ -255,7 +255,7 @@ describe('像素预览：照抄源文件才报源像素网格', () => {
 
 describe('EPS 与 TIFF（ADR 0046）', () => {
   it('tiff 是位图、eps 是矢量：PPI 规则对新格式同样成立', () => {
-    expect(FORMATS).toEqual(['pdf', 'png', 'eps', 'tiff'])
+    expect(FORMATS).toEqual(['pdf', 'png', 'eps', 'tiff', 'svg'])
     expect([...RASTER_FORMATS, ...VECTOR_FORMATS].sort()).toEqual([...FORMATS].sort())
     expect(buildExportRequest(inputOf({ formats: ['tiff'] })).request.ppi).toBe(600)
     expect(buildExportRequest(inputOf({ formats: ['pdf', 'tiff'], ppi: 300 })).request.ppi).toBe(
@@ -310,5 +310,17 @@ describe('EPS 与 TIFF（ADR 0046）', () => {
       inputOf({ scope: 'original', figureId: 'Fig1.pdf', formats: ['pdf', 'eps', 'tiff'] }),
     )
     expect(noScript.request.formats).toEqual(['pdf', 'tiff'])
+  })
+})
+
+
+describe('SVG 导出', () => {
+  it('画布与原图都接受 SVG，PPI 无意义且文件名使用 .svg', () => {
+    for (const scope of ['canvas', 'original'] as const) {
+      const built = buildExportRequest(inputOf({ scope, formats: ['svg'], figureId: 'Fig1.pdf' }))
+      expect(built.request.formats).toEqual(['svg'])
+      expect(built.request.ppi).toBeNull()
+      expect(built.names).toEqual(['Fig 1.svg'])
+    }
   })
 })

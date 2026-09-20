@@ -320,7 +320,7 @@ def prepare(
     而不是"这个文件名不能用"。
 
     `allowed_formats` 原样交给 `exportreq.normalize()`：画布合成认两种，引擎
-    直接序列化那条路多认一个 svg（见 `exportreq.ENGINE_FORMATS`）。
+    直接序列化那条路保留既有的格式排序（见 `exportreq.ENGINE_FORMATS`）。
     """
     request = exportreq.normalize(spec, allowed_formats=allowed_formats)
     with _LOCK:

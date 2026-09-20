@@ -1040,8 +1040,11 @@ def _export_produce_canvas(job, tmp_dir: Path) -> list:
                 )
                 continue
             try:
-                if fmt == engine_exportreq.FORMAT_PDF:
-                    canvas.save_pdf(tmp)
+                if fmt in (engine_exportreq.FORMAT_PDF, engine_exportreq.FORMAT_SVG):
+                    if fmt == engine_exportreq.FORMAT_SVG:
+                        canvas.save_svg(tmp)
+                    else:
+                        canvas.save_pdf(tmp)
                     produced.append(
                         engine_exportjob.Produced(
                             format=fmt,
@@ -1118,8 +1121,13 @@ def _export_produce_original(job, tmp_dir: Path) -> list:
         try:
             if fmt == engine_exportreq.FORMAT_EPS:
                 produced.append(_produce_original_eps(job, src, dpi, tmp_dir))
-            elif fmt == engine_exportreq.FORMAT_PDF:
-                facts = pdfbackend.original_pdf(source_path, tmp, page_pt)
+            elif fmt in (engine_exportreq.FORMAT_PDF, engine_exportreq.FORMAT_SVG):
+                writer = (
+                    pdfbackend.original_svg
+                    if fmt == engine_exportreq.FORMAT_SVG
+                    else pdfbackend.original_pdf
+                )
+                facts = writer(source_path, tmp, page_pt)
                 produced.append(
                     engine_exportjob.Produced(
                         format=fmt,

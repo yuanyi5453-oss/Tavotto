@@ -519,7 +519,7 @@ def run_smoke(
         spec = {
             "page_w_mm": 80,
             "page_h_mm": 40,
-            "formats": ["pdf"],
+            "formats": ["pdf", "svg"],
             "stem": "smoke",
             "objects": [
                 {
@@ -551,6 +551,21 @@ def run_smoke(
         if not first.is_file() or first.stat().st_size < 500:
             raise SmokeError(f"导出的 PDF 不对劲: {first}")
         print(f"✓ 导出 {first.name}（{first.stat().st_size} 字节，{timings['export_s']:.1f}s）")
+        # SVG 也必须从打包后的实际应用产出，物理尺寸与同一次 PDF 导出一致。
+        import xml.etree.ElementTree as ET
+
+        svg_file = next(item for item in out["outputs"] if item["format"] == "svg")
+        svg_path = Path(out["export_dir"]) / svg_file["name"]
+        svg_root = ET.parse(svg_path).getroot()
+        if svg_root.tag != "{http://www.w3.org/2000/svg}svg":
+            raise SmokeError("SVG 根元素或命名空间错误")
+        for axis, mm in (("width", 80), ("height", 40)):
+            value = svg_root.attrib[axis]
+            if not value.endswith("pt") or abs(float(value[:-2]) * 25.4 / 72 - mm) > 0.01:
+                raise SmokeError(f"SVG {axis} 的物理尺寸错误: {value}")
+        if not svg_root.findall(".//{http://www.w3.org/2000/svg}path"):
+            raise SmokeError("SVG 缺少矢量路径")
+        print(f"✓ SVG 导出与尺寸验证 {svg_path.name}")
 
         # 覆盖导出：Windows 上文件占用/只读的表现与 POSIX 完全不同，
         # 而「再导出一次」正是用户最常做的动作

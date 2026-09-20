@@ -1624,3 +1624,17 @@ describe('EPS 与 TIFF（ADR 0046）', () => {
     expect((button('开始导出') as HTMLButtonElement).disabled).toBe(true)
   })
 })
+
+
+describe('SVG 导出入口', () => {
+  it('勾选 SVG 后提交矢量请求，不要求 PPI', async () => {
+    await setup(9)
+    await click(formatBox('PNG'))
+    await click(formatBox('PDF'))
+    await click(formatBox('SVG'))
+    expect(ppiSelect()).toBeNull()
+    await click(button('开始导出')!)
+    expect(exportBodies[0].formats).toEqual(['svg'])
+    expect(exportBodies[0].ppi).toBeNull()
+  })
+})

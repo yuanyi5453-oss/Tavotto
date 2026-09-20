@@ -25,6 +25,7 @@ AGPL-3.0-only。把「读页面尺寸 / 栅格化 / 按布局合成」这三件�
   original_pdf(src, out, page_pt)   → 按原图尺寸出 PDF（矢量源整页搬运，不重画；
                                        位图源的页面尺寸由调用方给——密度的解析
                                        只有 engine/originalspec 一处）
+  original_svg(src, out, page_pt)   → 按原图尺寸出 SVG（文字转路径，位图嵌入）
   original_png(src, out, ppi, transparent)
                                     → 按原图出 PNG（位图**永远**保源像素网格；
                                        JPEG 源换容器不换像素）
@@ -36,7 +37,7 @@ AGPL-3.0-only。把「读页面尺寸 / 栅格化 / 按布局合成」这三件�
                                        出来的像素可能就不一样了）
 
 唯一的例外是 `compose()` 返回的画布对象本身——它由实现模块定义，
-但只通过 place/save_pdf/save_png/save_tiff/close 这几个方法被使用。
+但只通过 place/save_pdf/save_svg/save_png/save_tiff/close 这几个方法被使用。
 """
 
 from .pymupdf_backend import (  # noqa: F401
@@ -53,6 +54,7 @@ from .pymupdf_backend import (  # noqa: F401
     mm2pt,
     original_pdf,
     original_png,
+    original_svg,
     original_tiff,
     pdf_fonts,
     probe_asset,
@@ -75,6 +77,7 @@ __all__ = [
     "mm2pt",
     "original_pdf",
     "original_png",
+    "original_svg",
     "original_tiff",
     "pdf_fonts",
     "probe_asset",

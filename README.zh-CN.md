@@ -1,3 +1,6 @@
+> **SVG 扩展分支**：基于 Tavotto v0.15.0，新增桌面原图/画布 SVG 导出与 Codex 画布 SVG 按钮。详见 [扩展说明](docs/svg-export.md)。下方原 README 的安装链接仍属于上游官方分发；本分支修改需从源码构建。
+> 修改日期：2026-09-20；修改维护者：yuanyi5453-oss。保留 Tavotto 上游作者署名，本修改版继续使用 AGPL-3.0-only。
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/Tavotto/Tavotto/main/assets/readme/hero.svg" width="100%"
        alt="Tavotto —— matplotlib 与 AI 生成科研图的可视化编辑器。直接编辑图表，不必修改代码。">
