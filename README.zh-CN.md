@@ -1,4 +1,4 @@
-> **SVG 扩展分支**：基于 Tavotto v0.15.0，新增桌面原图/画布 SVG 导出与 Codex 画布 SVG 按钮。详见 [扩展说明](docs/svg-export.md)。下方原 README 的安装链接仍属于上游官方分发；本分支修改需从源码构建。
+> **SVG 扩展分支**：基于 Tavotto v0.15.0，新增桌面原图/画布 SVG 导出与 Codex 画布 SVG 按钮。详见 [扩展说明](docs/svg-export.md)与 [Windows 个人桌面版](docs/svg-desktop-windows.md)。下方原 README 的安装链接仍属于上游官方分发；请从本 Fork 的成功构建或 Releases 取得个人安装包。
 > 修改日期：2026-09-20；修改维护者：yuanyi5453-oss。保留 Tavotto 上游作者署名，本修改版继续使用 AGPL-3.0-only。
 
 <p align="center">

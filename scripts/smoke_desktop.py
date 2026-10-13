@@ -12,7 +12,7 @@
 3. Host/Origin 校验
 4. 打开 examples/figures 项目 → 素材扫描
 5. 渲染控制面：产物里带着 tavotto-workerd，且渲染**真的走了它**
-6. 参数化渲染 + PDF/PNG 导出（渲染环境缺 matplotlib 时如实跳过并报告）
+6. 参数化渲染 + PDF/PNG/SVG 导出（渲染环境缺 matplotlib 时如实跳过并报告）
 7. 关 stdin（模拟壳退出）→ sidecar 限时内自行退出，且不留 worker 孤儿
 
 数据/配置目录全程隔离在临时目录，绝不碰真实用户数据。
@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Windows 上 stdout 被重定向成管道时会退回系统区域编码（cp1252/cp936），
@@ -314,7 +315,7 @@ def main() -> None:
                     "page_w_mm": w + 10,
                     "page_h_mm": h + 10,
                     "dpi": 200,
-                    "formats": ["png", "pdf"],
+                    "formats": ["png", "pdf", "svg"],
                     "stem": "smoke",
                     "objects": [
                         {
@@ -329,11 +330,20 @@ def main() -> None:
                 },
                 cookie=cookie,
             )
-            assert st == 200 and len(body.get("files", [])) == 2, f"导出失败: {st} {body}"
+            assert st == 200 and len(body.get("files", [])) == 3, f"导出失败: {st} {body}"
             for f in body["files"]:
                 p = Path(body["export_dir"]) / f["name"]
                 assert p.is_file() and p.stat().st_size > 0, f"导出文件缺失: {p}"
-            ok(f"导出 PDF+PNG: {[f['name'] for f in body['files']]}")
+                if p.suffix == ".svg":
+                    root = ET.parse(p).getroot()
+                    assert root.tag == "{http://www.w3.org/2000/svg}svg"
+                    for axis, mm in (("width", w + 10), ("height", h + 10)):
+                        value = root.attrib[axis]
+                        assert value.endswith("pt"), f"SVG 缺少物理尺寸单位: {value}"
+                        assert abs(float(value[:-2]) * 25.4 / 72 - mm) < 0.01
+                    assert root.findall(".//{http://www.w3.org/2000/svg}path"), "SVG 缺少矢量路径"
+            assert any(f["name"].endswith(".svg") for f in body["files"]), "缺少 SVG 产物"
+            ok(f"导出 PDF+PNG+SVG（尺寸与矢量路径已核验）: {[f['name'] for f in body['files']]}")
 
         # ---- 渲染控制面（放在渲染之后问：那时池里才有真会话）----
         check_control_plane(port, cookie, is_packaged(exe), rendered)

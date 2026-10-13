@@ -1,0 +1,12 @@
+{
+  "bundle": {
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/yuanyi5453-oss/Tavotto/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}
