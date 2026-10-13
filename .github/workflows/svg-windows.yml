@@ -58,6 +58,35 @@ jobs:
             --expect-control-plane workerd --expect-packages numpy,pandas,scipy,seaborn,PIL,matplotlib --tutorial
       - name: 构建个人版 Windows 安装包
         run: pnpm dlx @tauri-apps/cli@2.11.4 build --bundles nsis --config src-tauri/tauri.svg.conf.json
+      - name: 生成可直接替换的桌面目录并验证壳进程
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path portable/Tavotto/sidecar -Force | Out-Null
+          Copy-Item -LiteralPath src-tauri/target/release/Tavotto.exe -Destination portable/Tavotto/Tavotto.exe
+          Copy-Item -LiteralPath dist/Tavotto -Destination portable/Tavotto/sidecar/Tavotto -Recurse
+          Copy-Item -LiteralPath LICENSE -Destination portable/Tavotto/LICENSE
+          $env:TAVOTTO_DATA_DIR = "$env:RUNNER_TEMP\svg-shell-data"
+          $env:TAVOTTO_CONFIG_DIR = "$env:RUNNER_TEMP\svg-shell-config"
+          $p = Start-Process -FilePath (Resolve-Path portable/Tavotto/Tavotto.exe) -PassThru -WindowStyle Hidden
+          $side = $null
+          try {
+            foreach ($i in 1..60) {
+              Start-Sleep -Milliseconds 500
+              $side = Get-CimInstance Win32_Process -Filter "ParentProcessId=$($p.Id)" |
+                Where-Object { $_.CommandLine -match 'desktop-sidecar' }
+              if ($side) { break }
+            }
+            if (-not $side) { throw 'Desktop shell did not start the packaged sidecar' }
+          } finally {
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+          }
+          foreach ($i in 1..30) {
+            Start-Sleep -Milliseconds 500
+            if (-not (Get-Process -Id $side.ProcessId -ErrorAction SilentlyContinue)) { break }
+          }
+          if (Get-Process -Id $side.ProcessId -ErrorAction SilentlyContinue) {
+            throw 'Sidecar did not exit after the shell closed'
+          }
       - name: 整理安装包与校验值
         shell: pwsh
         run: |
@@ -68,6 +97,9 @@ jobs:
           Copy-Item -LiteralPath $packages[0].FullName -Destination (Join-Path out $name)
           $hash = (Get-FileHash -LiteralPath (Join-Path out $name) -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $name" | Set-Content -LiteralPath out/SHA256SUMS.txt -Encoding ascii
+          Compress-Archive -LiteralPath portable/Tavotto -DestinationPath out/Tavotto-0.15.0-SVG-Windows-Portable.zip
+          $zipHash = (Get-FileHash -LiteralPath out/Tavotto-0.15.0-SVG-Windows-Portable.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$zipHash  Tavotto-0.15.0-SVG-Windows-Portable.zip" | Add-Content -LiteralPath out/SHA256SUMS.txt -Encoding ascii
           Copy-Item -LiteralPath docs/svg-desktop-windows.md -Destination out/README.md
           Copy-Item -LiteralPath LICENSE -Destination out/LICENSE
           '${{ github.sha }}' | Set-Content -LiteralPath out/SOURCE_COMMIT.txt -Encoding ascii
